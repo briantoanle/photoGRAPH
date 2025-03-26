@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from db import connection
-a
 project_routes = Blueprint("projects", __name__)
 
 @project_routes.route("/", methods=["GET"])
