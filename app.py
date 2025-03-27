@@ -1,9 +1,8 @@
-
 from flask import Flask, request, jsonify
 from routes.users import user_routes
 from flask_session import Session
 import os
-
+import gunicorn
 app = Flask(__name__)
 
 app.register_blueprint(user_routes, url_prefix="/api/users")
@@ -15,6 +14,10 @@ app.secret_key = os.getenv("SESSION_SECRET_KEY", "supersecretkey")
 
 # Initialize Flask-Session
 Session(app)
+@app.get("/")
+def home():
+
+    return "API successfully started"
 
 if __name__ == "__main__":
     app.run(debug=True)
