@@ -14,7 +14,7 @@ SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "supersecretkey")
 def get_users():
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT first_name, last_name, email FROM users;")
+            cursor.execute("SELECT user_id, first_name, last_name, email FROM users;")
             return jsonify(cursor.fetchall())
 
 # GET USER BY ID
