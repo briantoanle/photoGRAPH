@@ -14,7 +14,7 @@ app.secret_key = os.getenv("SESSION_SECRET_KEY", "supersecretkey")
 
 # Initialize Flask-Session
 Session(app)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:3000/", "https://james-j-han.github.io"]}})
+CORS(app)
 
 @app.get("/")
 def home():
