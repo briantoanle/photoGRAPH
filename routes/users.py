@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
-from db import connection
-
+#from db import connection
+from datetime import datetime, timezone
 import bcrypt
 import re
 import os
@@ -12,22 +12,36 @@ SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "supersecretkey")
 # GET ALL USERS
 @user_routes.route("/", methods=["GET"])
 def get_users():
-    with connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT user_id, first_name, last_name, email FROM users;")
-            return jsonify(cursor.fetchall())
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
 
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT user_id, first_name, last_name, email FROM users;")
+            users = cursor.fetchall()
+            return jsonify([
+                {"user_id": u[0], "first_name": u[1], "last_name": u[2], "email": u[3]} for u in users
+            ])
+    finally:
+        close_db_connection(conn)
 # GET USER BY ID
 @user_routes.route("/<int:user_id>", methods=["GET"])
 def get_user(user_id):
-    with connection:
-        with connection.cursor() as cursor:
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
+
+    try:
+        with conn.cursor() as cursor:
             cursor.execute("SELECT first_name, last_name, email FROM users WHERE user_id = %s;", (user_id,))
             user = cursor.fetchone()
             if user:
                 return jsonify({"first_name": user[0], "last_name": user[1], "email": user[2]})
             else:
                 return jsonify({"error": "User not found"}), 404
+    finally:
+        close_db_connection(conn)
 
 # REGISTER USER
 @user_routes.route("/register", methods=["POST"])
@@ -56,9 +70,12 @@ def create_user():
     # Hash password for security
     hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-    # Check if email already exists
-    with connection:
-        with connection.cursor() as cursor:
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
+
+    try:
+        with conn.cursor() as cursor:
             cursor.execute("SELECT user_id FROM users WHERE email = %s;", (email,))
             if cursor.fetchone():
                 return jsonify({"error": "Email already exists"}), 409
@@ -72,10 +89,12 @@ def create_user():
                 (first_name, last_name, email, hashed_password)
             )
             user_id = cursor.fetchone()[0]
+            conn.commit()
+    finally:
+        close_db_connection(conn)
 
     return jsonify({"message": "User created successfully", "user_id": user_id}), 201
-
-
+from db import get_db_connection, close_db_connection
 @user_routes.route("/login", methods=["POST"])
 def login_user():
     data = request.json
@@ -86,8 +105,12 @@ def login_user():
     if not email or not password:
         return jsonify({"error": "Email and password are required"}), 400
 
-    with connection:
-        with connection.cursor() as cursor:
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
+
+    try:
+        with conn.cursor() as cursor:
             cursor.execute("SELECT user_id, password_hash FROM users WHERE email = %s;", (email,))
             user = cursor.fetchone()
 
@@ -98,8 +121,15 @@ def login_user():
             if not bcrypt.checkpw(password.encode("utf-8"), stored_password.encode("utf-8")):
                 return jsonify({"error": "Invalid email or password"}), 401
 
-            # Store user session
+            # Update last login timestamp
+            cursor.execute("UPDATE users SET last_login = %s WHERE user_id = %s;",
+                           (datetime.now(timezone.utc), user_id))
+            conn.commit()
+
+            # Store user session using cookies
             session["user_id"] = user_id
+    finally:
+        close_db_connection(conn)
 
     return jsonify({"message": "Login successful", "user_id": user_id})
 
@@ -113,3 +143,4 @@ def get_current_user():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     return jsonify({"user_id": session["user_id"]})
+
