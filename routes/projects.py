@@ -5,7 +5,38 @@ project_routes = Blueprint("projects", __name__)
 # get existing projects -> return project name, model used, size of data set
 # create new project
 
-
+@project_routes.route("/getall", methods=["GET"])
+def get_all_projects():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT user_id, project_id, project_name FROM projects;")
+            projects = cursor.fetchall()
+            return jsonify([
+                {"user": p[0], "project_id": p[1], "project_name": p[2]}
+                for p in projects
+            ])
+    finally:
+        close_db_connection(conn)
+    
+@project_routes.route("/getProject/<int:project_id>", methods=["GET"])
+def get_project(project_id):
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT user_id, project_id, project_name FROM projects WHERE project_id = %s;", (project_id,))
+            project = cursor.fetchone()
+            return jsonify({"user_id": project[0], "project_id": project[1], "project_name": project[2]})
+    
+    finally:
+        close_db_connection(conn)
+    
 @project_routes.route("/create", methods=["POST"])
 def create_project():
     data = request.json

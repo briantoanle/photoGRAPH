@@ -8,7 +8,6 @@ load_dotenv()
 
 # PostgreSQL Database URL
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 # Initialize a connection pool
 try:
     connection_pool = psycopg2.pool.SimpleConnectionPool(
