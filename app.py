@@ -5,10 +5,12 @@ from routes.users import user_routes
 from flask_session import Session
 import os
 from flask_cors import CORS
+from routes.upload import upload_routes
 app = Flask(__name__)
 
 app.register_blueprint(user_routes, url_prefix="/api/users")
-#app.register_blueprint(project_routes, url_prefix="/api/projects")
+app.register_blueprint(project_routes, url_prefix="/api/projects")
+app.register_blueprint(upload_routes,url_prefix="/api/upload")
 
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"] = False

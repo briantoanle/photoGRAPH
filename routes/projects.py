@@ -115,7 +115,7 @@ def get_user_projects():
 
 
 @project_routes.route("/<int:project_id>", methods=["GET"])
-def get_project(project_id):
+def get_project_by_project_id(project_id):
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
