@@ -6,3 +6,4 @@ bcrypt
 flask_session
 flask-cors
 cloudinary
+requests
